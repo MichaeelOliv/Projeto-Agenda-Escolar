@@ -25,8 +25,8 @@ export const LoginView = () => {
   const { login } = useAuth();
 
   const [activeRoleTab, setActiveRoleTab] = useState('PAI'); // PAI, PROFESSOR, DIRECAO
-  const [email, setEmail] = useState('michaeel00@gmail.com');
-  const [password, setPassword] = useState('Agenda@2026');
+  const [email, setEmail] = useState(import.meta.env.VITE_USER_PAI_EMAIL || '');
+  const [password, setPassword] = useState(import.meta.env.VITE_USER_PAI_PASSWORD || '');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,13 +37,15 @@ export const LoginView = () => {
     setActiveRoleTab(role);
     setErrorMessage('');
     if (role === 'PAI') {
-      setEmail('michaeel00@gmail.com');
+      setEmail(import.meta.env.VITE_USER_PAI_EMAIL || '');
+      setPassword(import.meta.env.VITE_USER_PAI_PASSWORD || '');
     } else if (role === 'PROFESSOR') {
-      setEmail('mariana.costa@horizontesdosaber.edu.br');
+      setEmail(import.meta.env.VITE_USER_PROFESSOR_EMAIL || '');
+      setPassword(import.meta.env.VITE_USER_PROFESSOR_PASSWORD || '');
     } else if (role === 'DIRECAO') {
-      setEmail('direcao@horizontesdosaber.edu.br');
+      setEmail(import.meta.env.VITE_USER_DIRECAO_EMAIL || '');
+      setPassword(import.meta.env.VITE_USER_DIRECAO_PASSWORD || '');
     }
-    setPassword('Agenda@2026');
   };
 
   const handleSubmit = async (e) => {
@@ -78,18 +80,21 @@ export const LoginView = () => {
     setIsLoading(true);
     setErrorMessage('');
 
-    let targetEmail = 'michaeel00@gmail.com';
+    let targetEmail = import.meta.env.VITE_USER_PAI_EMAIL || '';
+    let targetPass = import.meta.env.VITE_USER_PAI_PASSWORD || '';
     if (role === 'PROFESSOR') {
-      targetEmail = 'mariana.costa@horizontesdosaber.edu.br';
+      targetEmail = import.meta.env.VITE_USER_PROFESSOR_EMAIL || '';
+      targetPass = import.meta.env.VITE_USER_PROFESSOR_PASSWORD || '';
     } else if (role === 'DIRECAO') {
-      targetEmail = 'direcao@horizontesdosaber.edu.br';
+      targetEmail = import.meta.env.VITE_USER_DIRECAO_EMAIL || '';
+      targetPass = import.meta.env.VITE_USER_DIRECAO_PASSWORD || '';
     }
 
     setEmail(targetEmail);
-    setPassword('Agenda@2026');
+    setPassword(targetPass);
 
     try {
-      const res = await login(targetEmail, 'Agenda@2026', role);
+      const res = await login(targetEmail, targetPass, role);
       setIsLoading(false);
       if (!res.success) {
         setErrorMessage(res.message || 'Falha na autenticação online.');

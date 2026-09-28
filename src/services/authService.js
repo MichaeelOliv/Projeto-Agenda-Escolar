@@ -1,25 +1,28 @@
-// Serviço de validação de autenticação simulando banco de dados online em nuvem
+// Serviço de validação de autenticação utilizando variáveis de ambiente (.env)
 
-const ONLINE_DATABASE_USERS = [
-  {
-    email: "michaeel00@gmail.com",
-    password: "Agenda@2026",
-    role: "PAI",
-    name: "Michaeel Oliveira"
-  },
-  {
-    email: "mariana.costa@horizontesdosaber.edu.br",
-    password: "Agenda@2026",
-    role: "PROFESSOR",
-    name: "Prof.ª Mariana Costa"
-  },
-  {
-    email: "direcao@horizontesdosaber.edu.br",
-    password: "Agenda@2026",
-    role: "DIRECAO",
-    name: "Dra. Beatriz Santos"
-  }
-];
+// Carrega a lista de usuários exclusivamente a partir das variáveis de ambiente (.env)
+const getOnlineDatabaseUsers = () => {
+  return [
+    {
+      email: import.meta.env.VITE_USER_PAI_EMAIL || "",
+      password: import.meta.env.VITE_USER_PAI_PASSWORD || "",
+      role: "PAI",
+      name: import.meta.env.VITE_USER_PAI_NAME || "Michaeel Oliveira"
+    },
+    {
+      email: import.meta.env.VITE_USER_PROFESSOR_EMAIL || "",
+      password: import.meta.env.VITE_USER_PROFESSOR_PASSWORD || "",
+      role: "PROFESSOR",
+      name: import.meta.env.VITE_USER_PROFESSOR_NAME || "Prof.ª Mariana Costa"
+    },
+    {
+      email: import.meta.env.VITE_USER_DIRECAO_EMAIL || "",
+      password: import.meta.env.VITE_USER_DIRECAO_PASSWORD || "",
+      role: "DIRECAO",
+      name: import.meta.env.VITE_USER_DIRECAO_NAME || "Dra. Beatriz Santos"
+    }
+  ];
+};
 
 export const authenticateOnlineUser = async (email, password, targetRole) => {
   // Simula latência de consulta HTTP/REST ao Banco de Dados Online (400ms)
@@ -28,8 +31,10 @@ export const authenticateOnlineUser = async (email, password, targetRole) => {
   const cleanEmail = email?.trim().toLowerCase();
   const cleanPassword = password?.trim();
 
+  const users = getOnlineDatabaseUsers();
+
   // Procura usuário correspondente no Banco de Dados
-  const foundUser = ONLINE_DATABASE_USERS.find(
+  const foundUser = users.find(
     (u) => u.email.toLowerCase() === cleanEmail
   );
 

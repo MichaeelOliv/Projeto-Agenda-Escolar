@@ -1,33 +1,33 @@
 // Cliente HTTP de Comunicação com Banco de Dados REST API em Nuvem (MockAPI Endpoint)
 
-const REST_API_ENDPOINT = "https://66e3382dcf55d40d.mockapi.io/api/v1/users";
+const REST_API_ENDPOINT = import.meta.env.VITE_REST_API_ENDPOINT || "https://66e3382dcf55d40d.mockapi.io/api/v1/users";
 
-// Usuários Pré-registrados no Banco de Dados REST Online
-const REMOTE_DATABASE_SEED = [
+// Usuários Pré-registrados no Banco de Dados REST Online (Carregados via .env)
+const getRemoteDatabaseSeed = () => [
   {
     id: "db_usr_001",
-    email: "michaeel00@gmail.com",
-    password: "Agenda@2026",
+    email: import.meta.env.VITE_USER_PAI_EMAIL || "",
+    password: import.meta.env.VITE_USER_PAI_PASSWORD || "",
     role: "PAI",
-    name: "Michaeel Oliveira",
+    name: import.meta.env.VITE_USER_PAI_NAME || "Michaeel Oliveira",
     status: "active",
     schoolId: "HORIZONTES_2026"
   },
   {
     id: "db_usr_002",
-    email: "mariana.costa@horizontesdosaber.edu.br",
-    password: "Agenda@2026",
+    email: import.meta.env.VITE_USER_PROFESSOR_EMAIL || "",
+    password: import.meta.env.VITE_USER_PROFESSOR_PASSWORD || "",
     role: "PROFESSOR",
-    name: "Prof.ª Mariana Costa",
+    name: import.meta.env.VITE_USER_PROFESSOR_NAME || "Prof.ª Mariana Costa",
     status: "active",
     schoolId: "HORIZONTES_2026"
   },
   {
     id: "db_usr_003",
-    email: "direcao@horizontesdosaber.edu.br",
-    password: "Agenda@2026",
+    email: import.meta.env.VITE_USER_DIRECAO_EMAIL || "",
+    password: import.meta.env.VITE_USER_DIRECAO_PASSWORD || "",
     role: "DIRECAO",
-    name: "Dra. Beatriz Santos",
+    name: import.meta.env.VITE_USER_DIRECAO_NAME || "Dra. Beatriz Santos",
     status: "active",
     schoolId: "HORIZONTES_2026"
   }
@@ -70,7 +70,8 @@ export const verifyOnlineCredentials = async (email, password, targetRole) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    let remoteUsers = REMOTE_DATABASE_SEED;
+    const seedUsers = getRemoteDatabaseSeed();
+    let remoteUsers = seedUsers;
 
     try {
       const response = await fetch(REST_API_ENDPOINT, {
@@ -85,7 +86,7 @@ export const verifyOnlineCredentials = async (email, password, targetRole) => {
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
           // Mescla registros retornados da API REST online
-          remoteUsers = [...data, ...REMOTE_DATABASE_SEED];
+          remoteUsers = [...data, ...seedUsers];
         }
       }
     } catch (e) {

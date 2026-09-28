@@ -14,9 +14,9 @@ export const SCHOOL_INFO = {
 export const MOCK_USERS = {
   PAI: {
     id: "user_pai_1",
-    name: "Michaeel Oliveira",
+    name: import.meta.env.VITE_USER_PAI_NAME || "Michaeel Oliveira",
     role: "PAI",
-    email: "michaeel00@gmail.com",
+    email: import.meta.env.VITE_USER_PAI_EMAIL || "",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
     students: [
       {
@@ -43,18 +43,18 @@ export const MOCK_USERS = {
   },
   PROFESSOR: {
     id: "user_prof_1",
-    name: "Prof.ª Mariana Costa",
+    name: import.meta.env.VITE_USER_PROFESSOR_NAME || "Prof.ª Mariana Costa",
     role: "PROFESSOR",
-    email: "mariana.costa@horizontesdosaber.edu.br",
+    email: import.meta.env.VITE_USER_PROFESSOR_EMAIL || "",
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
     specialty: "Regente do 5º Ano A & Português/História",
     classesAssigned: ["5A", "5B", "6A"]
   },
   DIRECAO: {
     id: "user_dir_1",
-    name: "Dra. Beatriz Santos",
+    name: import.meta.env.VITE_USER_DIRECAO_NAME || "Dra. Beatriz Santos",
     role: "DIRECAO",
-    email: "direcao@horizontesdosaber.edu.br",
+    email: import.meta.env.VITE_USER_DIRECAO_EMAIL || "",
     avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
     title: "Diretora Pedagógica & Coordenação Geral"
   }
