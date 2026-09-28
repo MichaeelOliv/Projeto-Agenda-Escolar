@@ -2,12 +2,12 @@
 
 const REST_API_ENDPOINT = import.meta.env.VITE_REST_API_ENDPOINT || "https://66e3382dcf55d40d.mockapi.io/api/v1/users";
 
-// Usuários Pré-registrados no Banco de Dados REST Online (Carregados via .env)
+// Usuários Pré-registrados no Banco de Dados REST Online (Carregados via .env ou Fallbacks)
 const getRemoteDatabaseSeed = () => [
   {
     id: "db_usr_001",
-    email: import.meta.env.VITE_USER_PAI_EMAIL || "",
-    password: import.meta.env.VITE_USER_PAI_PASSWORD || "",
+    email: import.meta.env.VITE_USER_PAI_EMAIL || "michaeel00@gmail.com",
+    password: import.meta.env.VITE_USER_PAI_PASSWORD || "Agenda@2026",
     role: "PAI",
     name: import.meta.env.VITE_USER_PAI_NAME || "Michaeel Oliveira",
     status: "active",
@@ -15,8 +15,8 @@ const getRemoteDatabaseSeed = () => [
   },
   {
     id: "db_usr_002",
-    email: import.meta.env.VITE_USER_PROFESSOR_EMAIL || "",
-    password: import.meta.env.VITE_USER_PROFESSOR_PASSWORD || "",
+    email: import.meta.env.VITE_USER_PROFESSOR_EMAIL || "mariana.costa@horizontesdosaber.edu.br",
+    password: import.meta.env.VITE_USER_PROFESSOR_PASSWORD || "Agenda@2026",
     role: "PROFESSOR",
     name: import.meta.env.VITE_USER_PROFESSOR_NAME || "Prof.ª Mariana Costa",
     status: "active",
@@ -24,8 +24,8 @@ const getRemoteDatabaseSeed = () => [
   },
   {
     id: "db_usr_003",
-    email: import.meta.env.VITE_USER_DIRECAO_EMAIL || "",
-    password: import.meta.env.VITE_USER_DIRECAO_PASSWORD || "",
+    email: import.meta.env.VITE_USER_DIRECAO_EMAIL || "direcao@horizontesdosaber.edu.br",
+    password: import.meta.env.VITE_USER_DIRECAO_PASSWORD || "Agenda@2026",
     role: "DIRECAO",
     name: import.meta.env.VITE_USER_DIRECAO_NAME || "Dra. Beatriz Santos",
     status: "active",

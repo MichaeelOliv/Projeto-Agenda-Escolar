@@ -25,8 +25,8 @@ export const LoginView = () => {
   const { login } = useAuth();
 
   const [activeRoleTab, setActiveRoleTab] = useState('PAI'); // PAI, PROFESSOR, DIRECAO
-  const [email, setEmail] = useState(import.meta.env.VITE_USER_PAI_EMAIL || '');
-  const [password, setPassword] = useState(import.meta.env.VITE_USER_PAI_PASSWORD || '');
+  const [email, setEmail] = useState(import.meta.env.VITE_USER_PAI_EMAIL || 'michaeel00@gmail.com');
+  const [password, setPassword] = useState(import.meta.env.VITE_USER_PAI_PASSWORD || 'Agenda@2026');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,14 +37,14 @@ export const LoginView = () => {
     setActiveRoleTab(role);
     setErrorMessage('');
     if (role === 'PAI') {
-      setEmail(import.meta.env.VITE_USER_PAI_EMAIL || '');
-      setPassword(import.meta.env.VITE_USER_PAI_PASSWORD || '');
+      setEmail(import.meta.env.VITE_USER_PAI_EMAIL || 'michaeel00@gmail.com');
+      setPassword(import.meta.env.VITE_USER_PAI_PASSWORD || 'Agenda@2026');
     } else if (role === 'PROFESSOR') {
-      setEmail(import.meta.env.VITE_USER_PROFESSOR_EMAIL || '');
-      setPassword(import.meta.env.VITE_USER_PROFESSOR_PASSWORD || '');
+      setEmail(import.meta.env.VITE_USER_PROFESSOR_EMAIL || 'mariana.costa@horizontesdosaber.edu.br');
+      setPassword(import.meta.env.VITE_USER_PROFESSOR_PASSWORD || 'Agenda@2026');
     } else if (role === 'DIRECAO') {
-      setEmail(import.meta.env.VITE_USER_DIRECAO_EMAIL || '');
-      setPassword(import.meta.env.VITE_USER_DIRECAO_PASSWORD || '');
+      setEmail(import.meta.env.VITE_USER_DIRECAO_EMAIL || 'direcao@horizontesdosaber.edu.br');
+      setPassword(import.meta.env.VITE_USER_DIRECAO_PASSWORD || 'Agenda@2026');
     }
   };
 
@@ -80,14 +80,14 @@ export const LoginView = () => {
     setIsLoading(true);
     setErrorMessage('');
 
-    let targetEmail = import.meta.env.VITE_USER_PAI_EMAIL || '';
-    let targetPass = import.meta.env.VITE_USER_PAI_PASSWORD || '';
+    let targetEmail = import.meta.env.VITE_USER_PAI_EMAIL || 'michaeel00@gmail.com';
+    let targetPass = import.meta.env.VITE_USER_PAI_PASSWORD || 'Agenda@2026';
     if (role === 'PROFESSOR') {
-      targetEmail = import.meta.env.VITE_USER_PROFESSOR_EMAIL || '';
-      targetPass = import.meta.env.VITE_USER_PROFESSOR_PASSWORD || '';
+      targetEmail = import.meta.env.VITE_USER_PROFESSOR_EMAIL || 'mariana.costa@horizontesdosaber.edu.br';
+      targetPass = import.meta.env.VITE_USER_PROFESSOR_PASSWORD || 'Agenda@2026';
     } else if (role === 'DIRECAO') {
-      targetEmail = import.meta.env.VITE_USER_DIRECAO_EMAIL || '';
-      targetPass = import.meta.env.VITE_USER_DIRECAO_PASSWORD || '';
+      targetEmail = import.meta.env.VITE_USER_DIRECAO_EMAIL || 'direcao@horizontesdosaber.edu.br';
+      targetPass = import.meta.env.VITE_USER_DIRECAO_PASSWORD || 'Agenda@2026';
     }
 
     setEmail(targetEmail);

@@ -1,23 +1,22 @@
-// Serviço de validação de autenticação utilizando variáveis de ambiente (.env)
+// Serviço de validação de autenticação utilizando variáveis de ambiente (.env) com fallbacks padrão de produção
 
-// Carrega a lista de usuários exclusivamente a partir das variáveis de ambiente (.env)
 const getOnlineDatabaseUsers = () => {
   return [
     {
-      email: import.meta.env.VITE_USER_PAI_EMAIL || "",
-      password: import.meta.env.VITE_USER_PAI_PASSWORD || "",
+      email: import.meta.env.VITE_USER_PAI_EMAIL || "michaeel00@gmail.com",
+      password: import.meta.env.VITE_USER_PAI_PASSWORD || "Agenda@2026",
       role: "PAI",
       name: import.meta.env.VITE_USER_PAI_NAME || "Michaeel Oliveira"
     },
     {
-      email: import.meta.env.VITE_USER_PROFESSOR_EMAIL || "",
-      password: import.meta.env.VITE_USER_PROFESSOR_PASSWORD || "",
+      email: import.meta.env.VITE_USER_PROFESSOR_EMAIL || "mariana.costa@horizontesdosaber.edu.br",
+      password: import.meta.env.VITE_USER_PROFESSOR_PASSWORD || "Agenda@2026",
       role: "PROFESSOR",
       name: import.meta.env.VITE_USER_PROFESSOR_NAME || "Prof.ª Mariana Costa"
     },
     {
-      email: import.meta.env.VITE_USER_DIRECAO_EMAIL || "",
-      password: import.meta.env.VITE_USER_DIRECAO_PASSWORD || "",
+      email: import.meta.env.VITE_USER_DIRECAO_EMAIL || "direcao@horizontesdosaber.edu.br",
+      password: import.meta.env.VITE_USER_DIRECAO_PASSWORD || "Agenda@2026",
       role: "DIRECAO",
       name: import.meta.env.VITE_USER_DIRECAO_NAME || "Dra. Beatriz Santos"
     }
