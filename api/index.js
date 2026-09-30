@@ -9,11 +9,29 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://michaeel00_db_user:<db_password>@ac-z2kzdsw-shard-00-00.l00plm1.mongodb.net:27017,ac-z2kzdsw-shard-00-01.l00plm1.mongodb.net:27017,ac-z2kzdsw-shard-00-02.l00plm1.mongodb.net:27017/eduagenda?ssl=true&replicaSet=atlas-9c24lu-shard-0&authSource=admin&appName=Cluster0';
 
-let dbClient = null;
-let db = null;
+let cachedClient = null;
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedDb) return cachedDb;
+  if (MONGODB_URI.includes('<db_password>')) return null;
+
+  try {
+    const client = new MongoClient(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    await client.connect();
+    const db = client.db('eduagenda');
+    cachedClient = client;
+    cachedDb = db;
+    return db;
+  } catch (err) {
+    console.error("❌ Erro ao conectar com o MongoDB Atlas:", err.message);
+    return null;
+  }
+}
 
 // Initial Seeds
 const INITIAL_USERS = [
@@ -158,71 +176,50 @@ const INITIAL_MESSAGES = [
   }
 ];
 
-async function connectToMongoDB() {
-  if (MONGODB_URI.includes('<db_password>')) {
-    console.warn('\n⚠️ [MongoDB Atlas] ATENÇÃO: Substitua a tag <db_password> pela senha real do usuário no arquivo .env!\n');
-    return false;
-  }
-
+async function seedDatabaseIfEmpty(db) {
+  if (!db) return;
   try {
-    console.log('🔄 Conectando ao MongoDB Atlas...');
-    dbClient = new MongoClient(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-    });
-    await dbClient.connect();
-    db = dbClient.db('eduagenda');
-    console.log('✅ [MongoDB Atlas] Conexão estabelecida com sucesso com a nuvem!');
-
-    // Seed collections
-    const usersCol = db.collection('users');
-    if (await usersCol.countDocuments() === 0) {
-      await usersCol.insertMany(INITIAL_USERS);
+    if (await db.collection('users').countDocuments() === 0) {
+      await db.collection('users').insertMany(INITIAL_USERS);
     }
-    const noticesCol = db.collection('notices');
-    if (await noticesCol.countDocuments() === 0) {
-      await noticesCol.insertMany(INITIAL_NOTICES);
+    if (await db.collection('notices').countDocuments() === 0) {
+      await db.collection('notices').insertMany(INITIAL_NOTICES);
     }
-    const postsCol = db.collection('daily_posts');
-    if (await postsCol.countDocuments() === 0) {
-      await postsCol.insertMany(INITIAL_DAILY_POSTS);
+    if (await db.collection('daily_posts').countDocuments() === 0) {
+      await db.collection('daily_posts').insertMany(INITIAL_DAILY_POSTS);
     }
-    const msgsCol = db.collection('messages');
-    if (await msgsCol.countDocuments() === 0) {
-      await msgsCol.insertMany(INITIAL_MESSAGES);
+    if (await db.collection('messages').countDocuments() === 0) {
+      await db.collection('messages').insertMany(INITIAL_MESSAGES);
     }
-    const gradesCol = db.collection('grades');
-    if (await gradesCol.countDocuments() === 0) {
-      await gradesCol.insertOne({ _id: "school_grades", data: INITIAL_GRADES });
+    if (await db.collection('grades').countDocuments() === 0) {
+      await db.collection('grades').insertOne({ _id: "school_grades", data: INITIAL_GRADES });
     }
-    const rosterCol = db.collection('students_roster');
-    if (await rosterCol.countDocuments() === 0) {
-      await rosterCol.insertOne({ _id: "school_roster", data: INITIAL_STUDENTS_ROSTER });
+    if (await db.collection('students_roster').countDocuments() === 0) {
+      await db.collection('students_roster').insertOne({ _id: "school_roster", data: INITIAL_STUDENTS_ROSTER });
     }
-
-    return true;
-  } catch (error) {
-    console.error('❌ [MongoDB Atlas] Erro ao conectar:', error.message);
-    return false;
-  }
+  } catch (e) {}
 }
 
 // REST API Endpoints
 
-app.get('/api/health', async (req, res) => {
+app.get(['/api/health', '/health'], async (req, res) => {
+  const db = await connectToDatabase();
   const isDbConnected = !!db;
   res.json({
     status: isDbConnected ? 'ONLINE' : 'OFFLINE_OR_PENDING_PASSWORD',
     database: 'MongoDB Atlas',
-    cluster: 'Cluster0 (ac-z2kzdsw)',
+    cluster: 'Cluster0 (Vercel Serverless)',
     connected: isDbConnected,
     uriConfigured: !MONGODB_URI.includes('<db_password>'),
     timestamp: new Date().toISOString()
   });
 });
 
-app.get('/api/sync', async (req, res) => {
+app.get(['/api/sync', '/sync'], async (req, res) => {
   try {
+    const db = await connectToDatabase();
     if (db) {
+      await seedDatabaseIfEmpty(db);
       const dailyPosts = await db.collection('daily_posts').find({}).toArray();
       const notices = await db.collection('notices').find({}).toArray();
       const messages = await db.collection('messages').find({}).toArray();
@@ -250,7 +247,7 @@ app.get('/api/sync', async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post(['/api/auth/login', '/auth/login'], async (req, res) => {
   const { email, password, targetRole } = req.body;
   const cleanEmail = email?.trim().toLowerCase();
   const cleanPassword = password?.trim();
@@ -260,6 +257,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   try {
+    const db = await connectToDatabase();
     let user = null;
     if (db) {
       user = await db.collection('users').findOne({ email: cleanEmail });
@@ -302,11 +300,12 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/posts', async (req, res) => {
+app.get(['/api/posts', '/posts'], async (req, res) => {
   try {
+    const db = await connectToDatabase();
     if (db) {
       const posts = await db.collection('daily_posts').find({}).toArray();
-      if (posts.length > 0) return res.json(posts);
+      return res.json(posts);
     }
     return res.json(INITIAL_DAILY_POSTS);
   } catch (err) {
@@ -314,16 +313,15 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-app.post('/api/posts', async (req, res) => {
+app.post(['/api/posts', '/posts'], async (req, res) => {
   try {
     const post = {
       ...req.body,
       id: req.body.id || `post_${Date.now()}`
     };
-    INITIAL_DAILY_POSTS.unshift(post);
+    const db = await connectToDatabase();
     if (db) {
       await db.collection('daily_posts').insertOne(post);
-      console.log(`📌 [MongoDB Atlas] Nova Atividade postada: "${post.title}"`);
     }
     res.status(201).json(post);
   } catch (err) {
@@ -331,11 +329,12 @@ app.post('/api/posts', async (req, res) => {
   }
 });
 
-app.get('/api/notices', async (req, res) => {
+app.get(['/api/notices', '/notices'], async (req, res) => {
   try {
+    const db = await connectToDatabase();
     if (db) {
       const notices = await db.collection('notices').find({}).toArray();
-      if (notices.length > 0) return res.json(notices);
+      return res.json(notices);
     }
     return res.json(INITIAL_NOTICES);
   } catch (err) {
@@ -343,7 +342,7 @@ app.get('/api/notices', async (req, res) => {
   }
 });
 
-app.post('/api/notices', async (req, res) => {
+app.post(['/api/notices', '/notices'], async (req, res) => {
   try {
     const notice = {
       ...req.body,
@@ -351,10 +350,9 @@ app.post('/api/notices', async (req, res) => {
       date: req.body.date || new Date().toISOString().split('T')[0],
       confirmedParents: req.body.confirmedParents || []
     };
-    INITIAL_NOTICES.unshift(notice);
+    const db = await connectToDatabase();
     if (db) {
       await db.collection('notices').insertOne(notice);
-      console.log(`📢 [MongoDB Atlas] Novo Aviso cadastrado pela Direção: "${notice.title}"`);
     }
     res.status(201).json(notice);
   } catch (err) {
@@ -362,17 +360,11 @@ app.post('/api/notices', async (req, res) => {
   }
 });
 
-app.put('/api/notices/:id/confirm', async (req, res) => {
+app.put(['/api/notices/:id/confirm', '/notices/:id/confirm'], async (req, res) => {
   const { id } = req.params;
   const { parentId } = req.body;
   try {
-    const noticeMatch = INITIAL_NOTICES.find(n => n.id === id);
-    if (noticeMatch) {
-      noticeMatch.confirmedParents = noticeMatch.confirmedParents || [];
-      if (!noticeMatch.confirmedParents.includes(parentId)) {
-        noticeMatch.confirmedParents.push(parentId);
-      }
-    }
+    const db = await connectToDatabase();
     if (db) {
       await db.collection('notices').updateOne(
         { id },
@@ -385,8 +377,9 @@ app.put('/api/notices/:id/confirm', async (req, res) => {
   }
 });
 
-app.get('/api/grades', async (req, res) => {
+app.get(['/api/grades', '/grades'], async (req, res) => {
   try {
+    const db = await connectToDatabase();
     if (db) {
       const gradesDoc = await db.collection('grades').findOne({ _id: "school_grades" });
       if (gradesDoc) return res.json(gradesDoc.data);
@@ -397,17 +390,16 @@ app.get('/api/grades', async (req, res) => {
   }
 });
 
-app.put('/api/grades', async (req, res) => {
+app.put(['/api/grades', '/grades'], async (req, res) => {
   try {
     const newGradesData = req.body;
-    Object.assign(INITIAL_GRADES, newGradesData);
+    const db = await connectToDatabase();
     if (db) {
       await db.collection('grades').updateOne(
         { _id: "school_grades" },
         { $set: { data: newGradesData } },
         { upsert: true }
       );
-      console.log('📊 [MongoDB Atlas] Boletim Escolar atualizado!');
     }
     res.json({ success: true, data: newGradesData });
   } catch (err) {
@@ -415,21 +407,10 @@ app.put('/api/grades', async (req, res) => {
   }
 });
 
-app.post('/api/grades/bimester', async (req, res) => {
+app.post(['/api/grades/bimester', '/grades/bimester'], async (req, res) => {
   const { bimesterName } = req.body;
   try {
-    Object.keys(INITIAL_GRADES).forEach((studentId) => {
-      const record = INITIAL_GRADES[studentId];
-      const newBim = {
-        bimester: bimesterName,
-        subjects: DEFAULT_SUBJECTS.map((s) => ({ ...s, grade: 8.5, attendance: 100 })),
-        teacherComments: "Novo bimestre cadastrado pela coordenação."
-      };
-      if (!record.bimesters.some(b => b.bimester === bimesterName)) {
-        record.bimesters.push(newBim);
-      }
-    });
-
+    const db = await connectToDatabase();
     if (db) {
       const gradesDoc = await db.collection('grades').findOne({ _id: "school_grades" });
       const currentData = gradesDoc?.data || INITIAL_GRADES;
@@ -442,9 +423,10 @@ app.post('/api/grades/bimester', async (req, res) => {
           subjects: DEFAULT_SUBJECTS.map((s) => ({ ...s, grade: 8.5, attendance: 100 })),
           teacherComments: "Novo bimestre cadastrado pela coordenação."
         };
-        if (!record.bimesters.some(b => b.bimester === bimesterName)) {
-          record.bimesters.push(newBim);
-        }
+        updated[studentId] = {
+          ...record,
+          bimesters: [...record.bimesters, newBim]
+        };
       });
 
       await db.collection('grades').updateOne(
@@ -452,17 +434,17 @@ app.post('/api/grades/bimester', async (req, res) => {
         { $set: { data: updated } },
         { upsert: true }
       );
-      console.log(`🎓 [MongoDB Atlas] Novo Bimestre ("${bimesterName}") adicionado para todos os alunos!`);
       return res.json({ success: true, data: updated });
     }
-    res.json({ success: true, data: INITIAL_GRADES });
+    res.json({ success: true, bimesterName });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/students', async (req, res) => {
+app.get(['/api/students', '/students'], async (req, res) => {
   try {
+    const db = await connectToDatabase();
     if (db) {
       const rosterDoc = await db.collection('students_roster').findOne({ _id: "school_roster" });
       if (rosterDoc) return res.json(rosterDoc.data);
@@ -473,27 +455,18 @@ app.get('/api/students', async (req, res) => {
   }
 });
 
-app.post('/api/students', async (req, res) => {
+app.post(['/api/students', '/students'], async (req, res) => {
   const { classId, student } = req.body;
   try {
-    const currentList = INITIAL_STUDENTS_ROSTER[classId] || [];
-    INITIAL_STUDENTS_ROSTER[classId] = [...currentList, student];
-    INITIAL_GRADES[student.id] = {
-      studentName: student.name,
-      classId,
-      bimesters: [
-        { bimester: "1º Bimestre", subjects: DEFAULT_SUBJECTS, teacherComments: "Aluno matriculado." },
-        { bimester: "2º Bimestre", subjects: DEFAULT_SUBJECTS, teacherComments: "Desempenho regular." },
-        { bimester: "3º Bimestre (Em Andamento)", subjects: DEFAULT_SUBJECTS, teacherComments: "Matrícula recente." }
-      ]
-    };
-
+    const db = await connectToDatabase();
     if (db) {
       const rosterDoc = await db.collection('students_roster').findOne({ _id: "school_roster" });
       const currentRoster = rosterDoc?.data || INITIAL_STUDENTS_ROSTER;
+      const currentClassList = currentRoster[classId] || [];
+
       const updatedRoster = {
         ...currentRoster,
-        [classId]: [...(currentRoster[classId] || []), student]
+        [classId]: [...currentClassList, student]
       };
 
       await db.collection('students_roster').updateOne(
@@ -504,9 +477,18 @@ app.post('/api/students', async (req, res) => {
 
       const gradesDoc = await db.collection('grades').findOne({ _id: "school_grades" });
       const currentGrades = gradesDoc?.data || INITIAL_GRADES;
+
       const updatedGrades = {
         ...currentGrades,
-        [student.id]: INITIAL_GRADES[student.id]
+        [student.id]: {
+          studentName: student.name,
+          classId,
+          bimesters: [
+            { bimester: "1º Bimestre", subjects: DEFAULT_SUBJECTS, teacherComments: "Aluno matriculado." },
+            { bimester: "2º Bimestre", subjects: DEFAULT_SUBJECTS, teacherComments: "Desempenho regular." },
+            { bimester: "3º Bimestre (Em Andamento)", subjects: DEFAULT_SUBJECTS, teacherComments: "Matrícula recente." }
+          ]
+        }
       };
 
       await db.collection('grades').updateOne(
@@ -515,20 +497,20 @@ app.post('/api/students', async (req, res) => {
         { upsert: true }
       );
 
-      console.log(`👤 [MongoDB Atlas] Novo aluno cadastrado na turma ${classId}: "${student.name}"`);
       return res.json({ success: true, roster: updatedRoster, grades: updatedGrades });
     }
-    res.json({ success: true, student, roster: INITIAL_STUDENTS_ROSTER });
+    res.json({ success: true, student });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/messages', async (req, res) => {
+app.get(['/api/messages', '/messages'], async (req, res) => {
   try {
+    const db = await connectToDatabase();
     if (db) {
       const msgs = await db.collection('messages').find({}).toArray();
-      if (msgs.length > 0) return res.json(msgs);
+      return res.json(msgs);
     }
     return res.json(INITIAL_MESSAGES);
   } catch (err) {
@@ -536,18 +518,10 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-app.post('/api/messages', async (req, res) => {
+app.post(['/api/messages', '/messages'], async (req, res) => {
   const { threadId, message, newThread } = req.body;
   try {
-    if (newThread) {
-      INITIAL_MESSAGES.unshift(newThread);
-    } else if (threadId && message) {
-      const thread = INITIAL_MESSAGES.find(t => t.id === threadId);
-      if (thread) {
-        thread.messages.push(message);
-        thread.status = message.sender === 'PAI' ? 'Aguardando' : 'Respondido';
-      }
-    }
+    const db = await connectToDatabase();
     if (db) {
       if (newThread) {
         await db.collection('messages').insertOne(newThread);
@@ -572,9 +546,10 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-// Start Server & Connect MongoDB Atlas
-app.listen(PORT, async () => {
-  console.log(`\n🚀 [EduAgenda Server] API rodando na porta ${PORT}`);
-  console.log(`📍 Endpoint local: http://localhost:${PORT}/api/health`);
-  await connectToMongoDB();
-});
+export default async function handler(req, res) {
+  const db = await connectToDatabase();
+  if (db) {
+    await seedDatabaseIfEmpty(db);
+  }
+  return app(req, res);
+}

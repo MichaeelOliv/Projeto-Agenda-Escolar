@@ -1,7 +1,7 @@
 // Cliente HTTP de Comunicação com Banco de Dados MongoDB Atlas / REST API em Nuvem
 
-const REST_API_ENDPOINT = import.meta.env.VITE_REST_API_ENDPOINT || "http://localhost:5000/api/auth/login";
-const HEALTH_CHECK_ENDPOINT = import.meta.env.VITE_HEALTH_CHECK_ENDPOINT || "http://localhost:5000/api/health";
+const REST_API_ENDPOINT = import.meta.env.VITE_REST_API_ENDPOINT || "/api/auth/login";
+const HEALTH_CHECK_ENDPOINT = import.meta.env.VITE_HEALTH_CHECK_ENDPOINT || "/api/health";
 
 // Usuários Pré-registrados no Banco de Dados (Carregados via .env ou Fallbacks)
 const getRemoteDatabaseSeed = () => [

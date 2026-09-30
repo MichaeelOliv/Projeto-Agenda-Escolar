@@ -9,6 +9,8 @@ import {
 
 const AgendaContext = createContext();
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const DEFAULT_SUBJECTS = [
   { name: "Língua Portuguesa", grade: 8.0, attendance: 100, status: "Aprovado" },
   { name: "Matemática", grade: 8.0, attendance: 100, status: "Aprovado" },
@@ -46,6 +48,29 @@ export const AgendaProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : MOCK_STUDENTS_ROSTER;
   });
 
+  // Fetch real-time data from MongoDB Atlas API on mount
+  useEffect(() => {
+    const fetchMongoDBAtlasData = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/sync`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.dailyPosts) setDailyPosts(data.dailyPosts);
+          if (data.notices) setNotices(data.notices);
+          if (data.messages) setMessages(data.messages);
+          if (data.grades) setGrades(data.grades);
+          if (data.studentsRoster) setStudentsRoster(data.studentsRoster);
+          console.log('✅ Dados sincronizados em tempo real do MongoDB Atlas!');
+        }
+      } catch (err) {
+        // Fallback local se o servidor estiver iniciando
+      }
+    };
+
+    fetchMongoDBAtlasData();
+  }, []);
+
+  // Save state to localStorage as offline cache
   useEffect(() => {
     localStorage.setItem('edu_daily_posts', JSON.stringify(dailyPosts));
   }, [dailyPosts]);
@@ -66,18 +91,28 @@ export const AgendaProvider = ({ children }) => {
     localStorage.setItem('edu_students_roster', JSON.stringify(studentsRoster));
   }, [studentsRoster]);
 
-  // Adicionar diário de classe / atividades do dia
-  const addDailyPost = (newPost) => {
+  // 1. Adicionar diário de classe / atividades do dia -> Persiste no MongoDB Atlas
+  const addDailyPost = async (newPost) => {
     const postWithId = {
       ...newPost,
       id: `post_${Date.now()}`
     };
     setDailyPosts((prev) => [postWithId, ...prev]);
+
+    try {
+      await fetch(`${API_BASE_URL}/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postWithId)
+      });
+    } catch (e) {
+      // Sincronização offline mantida
+    }
     return postWithId;
   };
 
-  // Adicionar aviso da direção/professor
-  const addNotice = (newNotice) => {
+  // 2. Adicionar aviso da direção/professor -> Persiste no MongoDB Atlas
+  const addNotice = async (newNotice) => {
     const noticeWithId = {
       ...newNotice,
       id: `not_${Date.now()}`,
@@ -85,10 +120,20 @@ export const AgendaProvider = ({ children }) => {
       confirmedParents: []
     };
     setNotices((prev) => [noticeWithId, ...prev]);
+
+    try {
+      await fetch(`${API_BASE_URL}/notices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(noticeWithId)
+      });
+    } catch (e) {
+      // Sincronização offline mantida
+    }
   };
 
-  // Marcar aviso como ciente pelo pai
-  const confirmNoticeRead = (noticeId, parentId) => {
+  // 3. Marcar aviso como ciente pelo pai -> Persiste no MongoDB Atlas
+  const confirmNoticeRead = async (noticeId, parentId) => {
     setNotices((prev) =>
       prev.map((n) => {
         if (n.id === noticeId) {
@@ -100,27 +145,38 @@ export const AgendaProvider = ({ children }) => {
         return n;
       })
     );
+
+    try {
+      await fetch(`${API_BASE_URL}/notices/${noticeId}/confirm`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId })
+      });
+    } catch (e) {
+      // Sincronização offline mantida
+    }
   };
 
-  // Enviar mensagem em uma conversa existente
-  const sendMessage = (threadId, text, senderRole, authorName) => {
+  // 4. Enviar mensagem em uma conversa existente -> Persiste no MongoDB Atlas
+  const sendMessage = async (threadId, text, senderRole, authorName) => {
+    const newMsg = {
+      id: `m_${Date.now()}`,
+      sender: senderRole,
+      authorName,
+      time: new Date().toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      text,
+      attachment: null
+    };
+
     setMessages((prev) =>
       prev.map((thread) => {
         if (thread.id === threadId) {
-          const newMsg = {
-            id: `m_${Date.now()}`,
-            sender: senderRole,
-            authorName,
-            time: new Date().toLocaleString('pt-BR', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            }),
-            text,
-            attachment: null
-          };
           return {
             ...thread,
             status: senderRole === 'PAI' ? 'Aguardando' : 'Respondido',
@@ -133,10 +189,20 @@ export const AgendaProvider = ({ children }) => {
         return thread;
       })
     );
+
+    try {
+      await fetch(`${API_BASE_URL}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId, message: newMsg })
+      });
+    } catch (e) {
+      // Sincronização offline mantida
+    }
   };
 
-  // Criar nova conversa entre pai e escola
-  const createNewMessageThread = (threadData) => {
+  // 5. Criar nova conversa entre pai e escola -> Persiste no MongoDB Atlas
+  const createNewMessageThread = async (threadData) => {
     const newThread = {
       ...threadData,
       id: `msg_${Date.now()}`,
@@ -150,16 +216,28 @@ export const AgendaProvider = ({ children }) => {
       unreadForTeacher: true
     };
     setMessages((prev) => [newThread, ...prev]);
+
+    try {
+      await fetch(`${API_BASE_URL}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newThread })
+      });
+    } catch (e) {
+      // Sincronização offline mantida
+    }
   };
 
-  // Atualizar Nota e Frequência (%) de uma disciplina
-  const updateStudentGradeAndAttendance = (
+  // 6. Atualizar Nota e Frequência (%) de uma disciplina -> Persiste no MongoDB Atlas
+  const updateStudentGradeAndAttendance = async (
     studentId,
     bimesterIndex,
     subjectName,
     newGrade,
     newAttendance
   ) => {
+    let updatedGradesState = null;
+
     setGrades((prev) => {
       const studentGradeRecord = prev[studentId] || {
         studentName: "Aluno",
@@ -193,18 +271,32 @@ export const AgendaProvider = ({ children }) => {
 
       updatedBimesters[bimesterIndex] = targetBimester;
 
-      return {
+      updatedGradesState = {
         ...prev,
         [studentId]: {
           ...studentGradeRecord,
           bimesters: updatedBimesters
         }
       };
+
+      return updatedGradesState;
     });
+
+    if (updatedGradesState) {
+      try {
+        await fetch(`${API_BASE_URL}/grades`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedGradesState)
+        });
+      } catch (e) {
+        // Sincronização offline mantida
+      }
+    }
   };
 
-  // Cadastrar Novo Aluno na Turma
-  const addStudent = (classId, studentData) => {
+  // 7. Cadastrar Novo Aluno na Turma pela Direção -> Persiste no MongoDB Atlas
+  const addStudent = async (classId, studentData) => {
     const newId = `alu_${Date.now().toString().slice(-4)}`;
     const newStudent = {
       id: newId,
@@ -223,7 +315,6 @@ export const AgendaProvider = ({ children }) => {
       };
     });
 
-    // Inicializa o boletim do novo aluno
     setGrades((prev) => ({
       ...prev,
       [newId]: {
@@ -237,11 +328,21 @@ export const AgendaProvider = ({ children }) => {
       }
     }));
 
+    try {
+      await fetch(`${API_BASE_URL}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classId, student: newStudent })
+      });
+    } catch (e) {
+      // Sincronização offline mantida
+    }
+
     return newStudent;
   };
 
-  // Adicionar Novo Bimestre para todos os alunos
-  const addBimester = (bimesterName) => {
+  // 8. Adicionar Novo Bimestre para todos os alunos (ex: 4º Bimestre) -> Persiste no MongoDB Atlas
+  const addBimester = async (bimesterName) => {
     setGrades((prev) => {
       const updated = { ...prev };
       Object.keys(updated).forEach((studentId) => {
@@ -258,6 +359,16 @@ export const AgendaProvider = ({ children }) => {
       });
       return updated;
     });
+
+    try {
+      await fetch(`${API_BASE_URL}/grades/bimester`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bimesterName })
+      });
+    } catch (e) {
+      // Sincronização offline mantida
+    }
   };
 
   return (
@@ -285,4 +396,3 @@ export const AgendaProvider = ({ children }) => {
 
 export const useAuthAgenda = () => useContext(AgendaContext);
 export const useAgenda = () => useContext(AgendaContext);
-
