@@ -4,7 +4,7 @@ import { SCHOOL_INFO } from '../data/mockData';
 import { GraduationCap, LogOut, Users, BookOpen, ShieldCheck } from 'lucide-react';
 
 export const Navbar = () => {
-  const { role, currentUser, selectedStudent, setSelectedStudentId, switchRole, logout } = useAuth();
+  const { role, canSwitchRole, currentUser, selectedStudent, setSelectedStudentId, switchRole, logout } = useAuth();
 
   const getRoleBadge = () => {
     switch (role) {
@@ -36,31 +36,33 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Demo Role Switcher */}
-        <div className="role-switcher-banner">
-          <span style={{ fontSize: '0.78rem', opacity: 0.8 }}>Modo de Acesso:</span>
-          <button
-            className={`role-btn ${role === 'PAI' ? 'active' : ''}`}
-            onClick={() => switchRole('PAI')}
-            title="Alternar para visão de Pais"
-          >
-            Pais / Resp.
-          </button>
-          <button
-            className={`role-btn ${role === 'PROFESSOR' ? 'active' : ''}`}
-            onClick={() => switchRole('PROFESSOR')}
-            title="Alternar para visão de Professor"
-          >
-            Professor
-          </button>
-          <button
-            className={`role-btn ${role === 'DIRECAO' ? 'active' : ''}`}
-            onClick={() => switchRole('DIRECAO')}
-            title="Alternar para visão de Direção"
-          >
-            Direção
-          </button>
-        </div>
+        {/* Role Switcher - Exclusivo da Direção */}
+        {canSwitchRole && (
+          <div className="role-switcher-banner">
+            <span style={{ fontSize: '0.78rem', opacity: 0.8, fontWeight: 600 }}>Modo de Acesso:</span>
+            <button
+              className={`role-btn ${role === 'PAI' ? 'active' : ''}`}
+              onClick={() => switchRole('PAI')}
+              title="Alternar para visão de Pais"
+            >
+              Pais / Resp.
+            </button>
+            <button
+              className={`role-btn ${role === 'PROFESSOR' ? 'active' : ''}`}
+              onClick={() => switchRole('PROFESSOR')}
+              title="Alternar para visão de Professor"
+            >
+              Professor
+            </button>
+            <button
+              className={`role-btn ${role === 'DIRECAO' ? 'active' : ''}`}
+              onClick={() => switchRole('DIRECAO')}
+              title="Alternar para visão de Direção"
+            >
+              Direção
+            </button>
+          </div>
+        )}
 
         {/* User Info & Student Selector */}
         <div className="user-profile-widget">

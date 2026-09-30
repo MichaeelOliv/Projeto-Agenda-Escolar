@@ -15,6 +15,12 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved).role : 'PAI';
   });
 
+  const [loggedUserRole, setLoggedUserRole] = useState(() => {
+    const saved = localStorage.getItem('eduagenda_session');
+    const parsed = saved ? JSON.parse(saved) : null;
+    return parsed?.loggedUserRole || parsed?.role || 'PAI';
+  });
+
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('eduagenda_session');
     const savedRole = saved ? JSON.parse(saved).role : 'PAI';
@@ -33,12 +39,12 @@ export const AuthProvider = ({ children }) => {
     if (isAuthenticated) {
       localStorage.setItem(
         'eduagenda_session',
-        JSON.stringify({ isAuthenticated: true, role })
+        JSON.stringify({ isAuthenticated: true, role, loggedUserRole })
       );
     } else {
       localStorage.removeItem('eduagenda_session');
     }
-  }, [isAuthenticated, role]);
+  }, [isAuthenticated, role, loggedUserRole]);
 
   const login = async (email, password, targetRole) => {
     // Consulta HTTP ao Banco de Dados REST API em Nuvem
@@ -51,6 +57,7 @@ export const AuthProvider = ({ children }) => {
     const selectedRole = res.role || targetRole || 'PAI';
     const user = MOCK_USERS[selectedRole] || MOCK_USERS.PAI;
 
+    setLoggedUserRole(selectedRole);
     setRole(selectedRole);
     setCurrentUser(user);
     if (selectedRole === 'PAI' && user.students?.length > 0) {
@@ -62,13 +69,18 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
+    setLoggedUserRole('PAI');
+    setRole('PAI');
     localStorage.removeItem('eduagenda_session');
   };
 
+  const canSwitchRole = loggedUserRole === 'DIRECAO';
+
   const switchRole = (newRole) => {
+    if (loggedUserRole !== 'DIRECAO') return;
     setRole(newRole);
     setCurrentUser(MOCK_USERS[newRole]);
-    if (newRole === 'PAI' && MOCK_USERS.PAI.students.length > 0) {
+    if (newRole === 'PAI' && MOCK_USERS.PAI.students?.length > 0) {
       setSelectedStudentId(MOCK_USERS.PAI.students[0].id);
     }
   };
@@ -83,6 +95,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         isAuthenticated,
         role,
+        loggedUserRole,
+        canSwitchRole,
         currentUser,
         selectedStudent,
         selectedStudentId,

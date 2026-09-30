@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AgendaProvider } from './context/AgendaContext';
 import { Navbar } from './components/Navbar';
@@ -11,8 +11,16 @@ import { ClassManagementView } from './components/ClassManagementView';
 import { LoginView } from './components/LoginView';
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, role } = useAuth();
   const [activeTab, setActiveTab] = useState('calendar');
+
+  const isStaff = role === 'PROFESSOR' || role === 'DIRECAO';
+
+  useEffect(() => {
+    if (!isStaff && activeTab === 'classes') {
+      setActiveTab('calendar');
+    }
+  }, [isStaff, activeTab]);
 
   if (!isAuthenticated) {
     return <LoginView />;
@@ -30,7 +38,7 @@ function AppContent() {
           {activeTab === 'chat' && <CommunicationPortal />}
           {activeTab === 'grades' && <GradesView />}
           {activeTab === 'notices' && <NoticesView />}
-          {activeTab === 'classes' && <ClassManagementView />}
+          {activeTab === 'classes' && isStaff && <ClassManagementView />}
         </div>
       </main>
 

@@ -25,27 +25,19 @@ export const LoginView = () => {
   const { login } = useAuth();
 
   const [activeRoleTab, setActiveRoleTab] = useState('PAI'); // PAI, PROFESSOR, DIRECAO
-  const [email, setEmail] = useState(import.meta.env.VITE_USER_PAI_EMAIL || 'michaeel00@gmail.com');
-  const [password, setPassword] = useState(import.meta.env.VITE_USER_PAI_PASSWORD || 'Agenda@2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Updates prefilled email when user selects a profile tab
+  // Clears inputs when user selects a profile tab for manual entry protection
   const handleSelectRoleTab = (role) => {
     setActiveRoleTab(role);
     setErrorMessage('');
-    if (role === 'PAI') {
-      setEmail(import.meta.env.VITE_USER_PAI_EMAIL || 'michaeel00@gmail.com');
-      setPassword(import.meta.env.VITE_USER_PAI_PASSWORD || 'Agenda@2026');
-    } else if (role === 'PROFESSOR') {
-      setEmail(import.meta.env.VITE_USER_PROFESSOR_EMAIL || 'mariana.costa@horizontesdosaber.edu.br');
-      setPassword(import.meta.env.VITE_USER_PROFESSOR_PASSWORD || 'Agenda@2026');
-    } else if (role === 'DIRECAO') {
-      setEmail(import.meta.env.VITE_USER_DIRECAO_EMAIL || 'direcao@horizontesdosaber.edu.br');
-      setPassword(import.meta.env.VITE_USER_DIRECAO_PASSWORD || 'Agenda@2026');
-    }
+    setEmail('');
+    setPassword('');
   };
 
   const handleSubmit = async (e) => {
@@ -72,36 +64,6 @@ export const LoginView = () => {
     } catch (err) {
       setIsLoading(false);
       setErrorMessage('Erro de conexão ao validar credenciais no banco de dados online.');
-    }
-  };
-
-  const handleQuickDemoLogin = async (role) => {
-    setActiveRoleTab(role);
-    setIsLoading(true);
-    setErrorMessage('');
-
-    let targetEmail = import.meta.env.VITE_USER_PAI_EMAIL || 'michaeel00@gmail.com';
-    let targetPass = import.meta.env.VITE_USER_PAI_PASSWORD || 'Agenda@2026';
-    if (role === 'PROFESSOR') {
-      targetEmail = import.meta.env.VITE_USER_PROFESSOR_EMAIL || 'mariana.costa@horizontesdosaber.edu.br';
-      targetPass = import.meta.env.VITE_USER_PROFESSOR_PASSWORD || 'Agenda@2026';
-    } else if (role === 'DIRECAO') {
-      targetEmail = import.meta.env.VITE_USER_DIRECAO_EMAIL || 'direcao@horizontesdosaber.edu.br';
-      targetPass = import.meta.env.VITE_USER_DIRECAO_PASSWORD || 'Agenda@2026';
-    }
-
-    setEmail(targetEmail);
-    setPassword(targetPass);
-
-    try {
-      const res = await login(targetEmail, targetPass, role);
-      setIsLoading(false);
-      if (!res.success) {
-        setErrorMessage(res.message || 'Falha na autenticação online.');
-      }
-    } catch (err) {
-      setIsLoading(false);
-      setErrorMessage('Erro de conexão ao acessar o banco de dados online.');
     }
   };
 
@@ -137,7 +99,7 @@ export const LoginView = () => {
 
           <div className="login-welcome-text">
             <h2>Portal de Acesso Escolar</h2>
-            <p>Selecione o seu perfil de usuário para acessar o sistema.</p>
+            <p>Selecione o seu perfil de usuário e informe seu e-mail e senha.</p>
           </div>
 
           {/* User Role Selection Tabs */}
@@ -212,32 +174,17 @@ export const LoginView = () => {
             </div>
           </div>
 
-          {/* Quick Demo Login Highlight Bar */}
-          <div className="quick-demo-box">
+          {/* Security Banner */}
+          <div className="quick-demo-box" style={{ background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534' }}>
             <div className="quick-demo-info">
-              <Sparkles size={18} className="sparkle-icon" />
+              <Shield size={18} color="#15803d" />
               <div>
-                <strong>Acesso Rápido de Demonstração:</strong> Clique para entrar instantaneamente como{' '}
-                {activeRoleTab === 'PAI' && 'Pai/Mãe (Michaeel Oliveira)'}
-                {activeRoleTab === 'PROFESSOR' && 'Professora (Mariana Costa)'}
-                {activeRoleTab === 'DIRECAO' && 'Diretora (Dra. Beatriz Santos)'}.
+                <strong>Acesso Protegido:</strong> Por segurança, digite manualmente seu e-mail e senha para o perfil de{' '}
+                {activeRoleTab === 'PAI' && 'Pais & Responsáveis'}
+                {activeRoleTab === 'PROFESSOR' && 'Professores'}
+                {activeRoleTab === 'DIRECAO' && 'Direção & Coordenação'}.
               </div>
             </div>
-            <button
-              type="button"
-              className="quick-demo-btn"
-              onClick={() => handleQuickDemoLogin(activeRoleTab)}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="spinner-sm"></span>
-              ) : (
-                <>
-                  Entrar como {activeRoleTab === 'PAI' ? 'Pai' : activeRoleTab === 'PROFESSOR' ? 'Professora' : 'Diretora'}
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </button>
           </div>
 
           {/* Credentials Form */}
