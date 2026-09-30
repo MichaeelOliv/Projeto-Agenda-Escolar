@@ -48,22 +48,74 @@ export const AgendaProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : MOCK_STUDENTS_ROSTER;
   });
 
-  // Fetch real-time data from MongoDB Atlas API on mount
+  // Fetch real-time data from MongoDB Atlas API on mount with intelligent local cache merge
   useEffect(() => {
     const fetchMongoDBAtlasData = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/sync`);
         if (response.ok) {
           const data = await response.json();
-          if (data.dailyPosts) setDailyPosts(data.dailyPosts);
-          if (data.notices) setNotices(data.notices);
-          if (data.messages) setMessages(data.messages);
-          if (data.grades) setGrades(data.grades);
-          if (data.studentsRoster) setStudentsRoster(data.studentsRoster);
-          console.log('✅ Dados sincronizados em tempo real do MongoDB Atlas!');
+
+          // Merge daily posts
+          if (data.dailyPosts && data.dailyPosts.length > 0) {
+            setDailyPosts(prev => {
+              const ids = new Set(data.dailyPosts.map(p => p.id));
+              const localOnly = prev.filter(p => !ids.has(p.id));
+              return [...localOnly, ...data.dailyPosts];
+            });
+          }
+
+          // Merge notices
+          if (data.notices && data.notices.length > 0) {
+            setNotices(prev => {
+              const ids = new Set(data.notices.map(n => n.id));
+              const localOnly = prev.filter(n => !ids.has(n.id));
+              return [...localOnly, ...data.notices];
+            });
+          }
+
+          // Merge grades & bimesters (never lose 4º Bimestre)
+          if (data.grades && Object.keys(data.grades).length > 0) {
+            setGrades(prev => {
+              const merged = { ...data.grades };
+              Object.keys(prev).forEach(studentId => {
+                if (!merged[studentId]) {
+                  merged[studentId] = prev[studentId];
+                } else {
+                  const localBimesters = prev[studentId]?.bimesters || [];
+                  const serverBimesters = merged[studentId]?.bimesters || [];
+                  const bimNames = new Set(serverBimesters.map(b => b.bimester));
+                  const missingLocalBims = localBimesters.filter(b => !bimNames.has(b.bimester));
+                  merged[studentId].bimesters = [...serverBimesters, ...missingLocalBims];
+                }
+              });
+              return merged;
+            });
+          }
+
+          // Merge student roster
+          if (data.studentsRoster && Object.keys(data.studentsRoster).length > 0) {
+            setStudentsRoster(prev => {
+              const merged = { ...data.studentsRoster };
+              Object.keys(prev).forEach(classId => {
+                if (!merged[classId]) {
+                  merged[classId] = prev[classId];
+                } else {
+                  const localStudents = prev[classId] || [];
+                  const serverStudents = merged[classId] || [];
+                  const stIds = new Set(serverStudents.map(s => s.id));
+                  const localOnlySt = localStudents.filter(s => !stIds.has(s.id));
+                  merged[classId] = [...serverStudents, ...localOnlySt];
+                }
+              });
+              return merged;
+            });
+          }
+
+          console.log('✅ Dados sincronizados em tempo real!');
         }
       } catch (err) {
-        // Fallback local se o servidor estiver iniciando
+        // Cache local mantido
       }
     };
 
